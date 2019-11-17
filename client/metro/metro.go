@@ -1,4 +1,4 @@
-package client
+package metro
 
 import (
 	"encoding/json"
@@ -15,7 +15,7 @@ type Station struct {
 	Name  string
 	Lat   float64
 	Lng   float64
-	Order uint32
+	Order uint
 }
 
 type Line struct {
@@ -31,9 +31,9 @@ type City struct {
 	Lines []Line
 }
 
-type MetroClient struct{}
+type Client struct{}
 
-func (c *MetroClient) Get(cityId int32) City {
+func (c *Client) Get(cityId int) City {
 	client := &http.Client{
 		Timeout: time.Second * 10,
 		Transport: &http.Transport{
@@ -54,7 +54,8 @@ func (c *MetroClient) Get(cityId int32) City {
 	}
 
 	city := City{}
-	if json.Unmarshal(body, &city) != nil {
+	err = json.Unmarshal(body, &city)
+	if err != nil {
 		log.Fatalln(err)
 	}
 

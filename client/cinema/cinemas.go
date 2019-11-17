@@ -1,8 +1,9 @@
-package client
+package cinema
 
 import (
-	"encoding/json"
+	"encoding/xml"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -19,6 +20,13 @@ type Location struct {
 	Latitude  string
 }
 
+type Subway struct {
+	Id       string
+	Name     string
+	Color    string
+	Distance string
+}
+
 type Attribute struct {
 	ShortTitle string
 	Network    Network
@@ -28,8 +36,8 @@ type Attribute struct {
 	IsFave     string
 	IsSale     string
 	Address    string
-	Tittle     string
-	//"subway": [],
+	Title      string
+	Subway     []Subway
 	//"goodies": [],
 	//"city": {...},
 	//"isAdv": "0",
@@ -43,13 +51,13 @@ type Cinema struct {
 	Attributes Attribute
 }
 
-type Response struct {
+type response struct {
 	Data []Cinema
 }
 
-type CinemasClient struct{}
+type Client struct{}
 
-func (c *CinemasClient) Get(cityId int32) []Cinema {
+func (c *Client) Get(cityId int) []Cinema {
 	client := &http.Client{
 		Timeout: time.Second * 10,
 		Transport: &http.Transport{
@@ -69,10 +77,18 @@ func (c *CinemasClient) Get(cityId int32) []Cinema {
 		log.Fatalln(err)
 	}
 
-	response := Response{}
-	if json.Unmarshal(body, &response) != nil {
+	response := response{}
+	err = xml.Unmarshal(body, &response)
+	if err != nil {
 		log.Fatalln(err)
 	}
 
 	return response.Data
+}
+
+func Close(c io.Closer) {
+	err := c.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
