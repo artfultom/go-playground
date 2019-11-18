@@ -8,54 +8,28 @@ import (
 	"playground/client"
 )
 
-//type Network struct {
-//	Id    string
-//	Alias string
-//}
-
-//type Location struct {
-//	Longitude string
-//	Latitude  string
-//}
-
-//type subway struct {
-//	Id       string
-//	Name     string
-//	Color    string
-//	Distance string
-//}
-
-type attribute struct {
-	Title  string
-	ImdbId string
-	//Network    Network
-	//Location   Location
-	//Distance   string
-	//Mall       string
-	//IsFave     string
-	//IsSale     string
-	//Address    string
-	//Subway     []Subway
-	//"goodies": [],
-	//"city": {...},
-	//"isAdv": "0",
-	//"labels": [],
-}
-
-type movie struct {
+type MoviesData struct {
 	Id         string
-	Attributes attribute
-	//Link       string
+	Attributes struct {
+		Title          string
+		ImdbId         string
+		ImdbRating     string
+		ProductionYear string
+		AnnotationFull string
+		Genres         []struct {
+			Name string
+		}
+	}
 }
 
-type response struct {
-	Data []movie
+type moviesResponse struct {
+	Data []MoviesData
 }
 
-func GetMovies() ([]movie, error) {
+func GetMovies() ([]MoviesData, error) {
 	httpClient := client.NewHttpClient()
 
-	resp, err := httpClient.Get(fmt.Sprintf("https://api.kinohod.ru/api/restful/v1/movies"))
+	resp, err := httpClient.Get(fmt.Sprintf("https://api.kinohod.ru/api/restful/v1/movies?attributes[]=movie.full"))
 	if err != nil {
 		return nil, err
 	} else {
@@ -72,7 +46,7 @@ func GetMovies() ([]movie, error) {
 		return nil, err
 	}
 
-	response := response{}
+	response := moviesResponse{}
 	err = json.Unmarshal(body, &response)
 	if err != nil {
 		return nil, err
@@ -80,3 +54,5 @@ func GetMovies() ([]movie, error) {
 
 	return response.Data, nil
 }
+
+// TODO добавить метод получения данных о фильме

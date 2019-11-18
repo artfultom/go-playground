@@ -2,18 +2,15 @@ package main
 
 import (
 	"fmt"
-	tgbotapi "github.com/Syfaro/telegram-bot-api"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"log"
-	"playground/client/imdb"
 	"playground/client/kinohod"
-	"playground/client/seance"
-	"strconv"
+	"sort"
 )
 
+var moviesMap = make(map[string]kinohod.MoviesData) // TODO удалить
+
 func main() {
-
-	Test()
-
 	bot, err := tgbotapi.NewBotAPI("")
 	if err != nil {
 		log.Panic(err)
@@ -55,69 +52,92 @@ func main() {
 
 				break
 			case "Что сейчас в кино?":
-				msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Сеансы:")
 
-				var InlineKeyboard = tgbotapi.NewInlineKeyboardMarkup(
-					tgbotapi.NewInlineKeyboardRow(
-						tgbotapi.NewInlineKeyboardButtonData("Фильм 1", "1"),
-					),
-					tgbotapi.NewInlineKeyboardRow(
-						tgbotapi.NewInlineKeyboardButtonData("Фильм 2", "2"),
-					),
-				)
+				movies, err := kinohod.GetMovies()
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				var InlineKeyboard = tgbotapi.NewInlineKeyboardMarkup()
+
+				sort.Slice(movies, func(i, j int) bool {
+					return movies[i].Attributes.ImdbRating > movies[j].Attributes.ImdbRating
+				})
+
+				moviesMap = make(map[string]kinohod.MoviesData)
+
+				for i := 0; i < 6; i++ {
+					movie := movies[i]
+
+					if movie.Attributes.ImdbRating != "" {
+						InlineKeyboard.InlineKeyboard = append(InlineKeyboard.InlineKeyboard, tgbotapi.NewInlineKeyboardRow(
+							tgbotapi.NewInlineKeyboardButtonData(movie.Attributes.Title+" "+movie.Attributes.ImdbRating, movie.Id),
+						))
+
+						moviesMap[movie.Id] = movie
+					}
+				}
 
 				msg.ReplyMarkup = InlineKeyboard
 
-				_, err := bot.Send(msg)
+				_, err = bot.Send(msg)
 				if err != nil {
 					log.Fatal(err)
 				}
 
 				break
+			default:
+				log.Println(update.Message.Text)
+				break
 			}
 		} else {
 			switch update.CallbackQuery.Data {
 			case "1":
-				bot.Send(tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Вы выбрали фильм "+update.CallbackQuery.Data))
 				break
-			case "2":
-				bot.Send(tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Вы же выбрали фильм "+update.CallbackQuery.Data))
+			default:
+				movie := moviesMap[update.CallbackQuery.Data]
+				title := movie.Attributes.Title
+				year := movie.Attributes.ProductionYear
+				genres := movie.Attributes.Genres[0].Name
+				if len(movie.Attributes.Genres) > 1 {
+					for i := 1; i < len(movie.Attributes.Genres); i++ {
+						genres += ", " + movie.Attributes.Genres[i].Name
+					}
+				}
+				annotation := movie.Attributes.AnnotationFull
+
+				msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, ""+
+					"Вы выбрали <b>"+title+" "+"("+year+")</b> - "+genres+".\n"+
+					annotation)
+				msg.ParseMode = "HTML"
+
+				_, err := bot.Send(msg)
+				if err != nil {
+					log.Fatalln(err)
+				}
 				break
 			}
 
-			bot.AnswerCallbackQuery(tgbotapi.NewCallback(update.CallbackQuery.ID, ""))
+			_, err := bot.AnswerCallbackQuery(tgbotapi.NewCallback(update.CallbackQuery.ID, ""))
+			if err != nil {
+				log.Fatalln(err)
+			}
 		}
+
+		// 1. Список фильмов (ТОП по рейтингу)
+		// 2. Местоположение? Не решил, на каком этапе спрашивать
+		// 3. Список ближайших сеансов с учетом дороги на метро
+		// 		1. Список сеансов.
+		// 		2. Координаты кинотеатров и расстояние до метро.
+		// 		3. Расстояние между польователем и ближайшей станцией.
+		//		4. Время на метро.
+		//			(https://www.moscowmap.ru/_ajax/metro-p2p-m.php?st1=233&st2=176, придется парсить страницу для id станций)
+		//			(хуяндекс карты)
+		//		5. Упорядочить по убыванию суммарного времени пути.
+		//
+		// Далее:
+		// 		Показывать загруженность залов
+		// 		Бронировать сеанс
 	}
-
-	//1. Запросить список фильмов.
-
-	movies, err := kinohod.GetMovies()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println(movies)
-
-	movieId, err := strconv.Atoi(movies[0].Id)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	imdbId, err := strconv.Atoi(movies[0].Attributes.ImdbId)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	fmt.Println(movies[0])
-
-	client2 := imdb.Client{}
-	result2 := client2.Get(imdbId)
-	fmt.Println(result2.Ratings[0].Value)
-
-	client3 := seance.Client{}
-
-	fmt.Println(client3.Get(1, movieId))
-
-	//3. Для самого крутого показать кинотеатры с координатами.
-
 }

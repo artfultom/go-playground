@@ -30,7 +30,7 @@ func (c *Client) Get(imdbId int) response {
 		},
 	}
 
-	resp, err := client.Get(fmt.Sprintf("http://www.omdbapi.com/?i=tt%d&apikey=??", imdbId))
+	resp, err := client.Get(fmt.Sprintf("http://www.omdbapi.com/?i=tt%d&apikey=???", imdbId))
 	if err != nil {
 		log.Fatalln(err)
 	}
