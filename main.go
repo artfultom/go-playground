@@ -117,6 +117,11 @@ func main() {
 					log.Fatalln(err)
 				}
 				break
+
+				//time, path := service.GetPath(47, 152)
+				//
+				//fmt.Println("Time", time, "minutes")
+				//fmt.Println("Path", path)
 			}
 
 			_, err := bot.AnswerCallbackQuery(tgbotapi.NewCallback(update.CallbackQuery.ID, ""))

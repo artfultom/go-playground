@@ -37,7 +37,7 @@ type stationsData struct {
 		Type           string
 		FromStationId  int
 		ToStationId    int
-		WeightTime     int
+		WeightTime     int64
 		WeightTransfer int
 	}
 	Transfers map[string]struct {
