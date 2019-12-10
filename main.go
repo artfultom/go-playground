@@ -7,9 +7,9 @@ import (
 	"log"
 	"playground/client/kinohod"
 	"sort"
+	"strconv"
+	"strings"
 )
-
-var moviesMap = make(map[string]kinohod.MoviesData) // TODO удалить
 
 func main() {
 	telegramKey := flag.String("t_key", "", "Telegram API key")
@@ -69,17 +69,13 @@ func main() {
 					return movies[i].Attributes.ImdbRating > movies[j].Attributes.ImdbRating
 				})
 
-				moviesMap = make(map[string]kinohod.MoviesData)
-
 				for i := 0; i < 6; i++ {
 					movie := movies[i]
 
 					if movie.Attributes.ImdbRating != "" {
 						InlineKeyboard.InlineKeyboard = append(InlineKeyboard.InlineKeyboard, tgbotapi.NewInlineKeyboardRow(
-							tgbotapi.NewInlineKeyboardButtonData(movie.Attributes.Title+" "+movie.Attributes.ImdbRating, movie.Id),
+							tgbotapi.NewInlineKeyboardButtonData(movie.Attributes.Title+" "+movie.Attributes.ImdbRating, "movie_"+movie.Id),
 						))
-
-						moviesMap[movie.Id] = movie
 					}
 				}
 
@@ -96,11 +92,22 @@ func main() {
 				break
 			}
 		} else {
-			switch update.CallbackQuery.Data {
+			data := update.CallbackQuery.Data
+			switch strings.Split(data, "_")[0] {
 			case "1":
+				// TODO
 				break
-			default:
-				movie := moviesMap[update.CallbackQuery.Data]
+			case "movie":
+				id, err := strconv.Atoi(strings.Split(data, "_")[1])
+				if err != nil {
+					log.Fatalln(err)
+				}
+
+				movie, err := kinohod.GetMovie(id)
+				if err != nil {
+					log.Fatalln(err)
+				}
+
 				title := movie.Attributes.Title
 				year := movie.Attributes.ProductionYear
 				genres := movie.Attributes.Genres[0].Name
@@ -116,10 +123,11 @@ func main() {
 					annotation)
 				msg.ParseMode = "HTML"
 
-				_, err := bot.Send(msg)
+				_, err = bot.Send(msg)
 				if err != nil {
 					log.Fatalln(err)
 				}
+			default:
 				break
 
 				//time, path := service.GetPath(47, 152)
