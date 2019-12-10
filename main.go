@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"log"
@@ -11,7 +12,10 @@ import (
 var moviesMap = make(map[string]kinohod.MoviesData) // TODO удалить
 
 func main() {
-	bot, err := tgbotapi.NewBotAPI("")
+	telegramKey := flag.String("t_key", "", "Telegram API key")
+	flag.Parse()
+
+	bot, err := tgbotapi.NewBotAPI(*telegramKey)
 	if err != nil {
 		log.Panic(err)
 	}
