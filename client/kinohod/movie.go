@@ -8,7 +8,7 @@ import (
 	"playground/client"
 )
 
-type MoviesData struct {
+type MovieData struct {
 	Id         string
 	Attributes struct {
 		Title          string
@@ -23,10 +23,14 @@ type MoviesData struct {
 }
 
 type moviesResponse struct {
-	Data []MoviesData
+	Data []MovieData
 }
 
-func GetMovies() ([]MoviesData, error) {
+type movieResponse struct {
+	Data MovieData
+}
+
+func GetMovies() ([]MovieData, error) {
 	httpClient := client.NewHttpClient()
 
 	resp, err := httpClient.Get(fmt.Sprintf("https://api.kinohod.ru/api/restful/v1/movies?attributes[]=movie.full"))
@@ -55,4 +59,31 @@ func GetMovies() ([]MoviesData, error) {
 	return response.Data, nil
 }
 
-// TODO добавить метод получения данных о фильме
+func GetMovie(id int) (*MovieData, error) {
+	httpClient := client.NewHttpClient()
+
+	resp, err := httpClient.Get(fmt.Sprintf("https://api.kinohod.ru/api/restful/v1/movies/%d?attributes[]=movie.full", id))
+	if err != nil {
+		return nil, err
+	} else {
+		defer func() {
+			err := resp.Body.Close()
+			if err != nil {
+				log.Fatal(err)
+			}
+		}()
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	response := movieResponse{}
+	err = json.Unmarshal(body, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response.Data, nil
+}
